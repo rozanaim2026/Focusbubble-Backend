@@ -1,15 +1,15 @@
-# crud.py
 from sqlalchemy.orm import Session
 import models
 import schemas
 from datetime import datetime, timedelta
 from typing import List
 
+# =========================
 # USER
+# =========================
 def get_or_create_user(db: Session, email: str, name: str = None, picture: str = None):
     u = db.query(models.User).filter(models.User.email == email).first()
     if u:
-        # update name/picture if changed
         changed = False
         if name and u.name != name:
             u.name = name; changed = True
@@ -25,7 +25,65 @@ def get_or_create_user(db: Session, email: str, name: str = None, picture: str =
 def get_user(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()
 
+# =========================
+# STATS + STREAK
+# =========================
+def get_or_create_stats(db: Session, user_id: int):
+    stats = db.query(models.FocusStats).filter(models.FocusStats.user_id == user_id).first()
+    if stats:
+        return stats
+    stats = models.FocusStats(user_id=user_id)
+    db.add(stats); db.commit(); db.refresh(stats)
+    return stats
+
+def get_or_create_streak(db: Session, user_id: int):
+    streak = db.query(models.UserStreak).filter(models.UserStreak.user_id == user_id).first()
+    if streak:
+        return streak
+    streak = models.UserStreak(user_id=user_id, current_streak=0)
+    db.add(streak); db.commit(); db.refresh(streak)
+    return streak
+
+def maybe_reset_weekly(stats: models.FocusStats):
+    now = datetime.utcnow()
+    last = stats.last_week_reset
+
+    if now.isocalendar()[1] != last.isocalendar()[1]:  # new week
+        stats.weekly_minutes = 0
+        stats.last_week_reset = now
+
+def update_after_session_completion(db: Session, user_id: int, session: models.FocusSession):
+    minutes = int((session.end_time - session.start_time).total_seconds() / 60)
+
+    stats = get_or_create_stats(db, user_id)
+    streak = get_or_create_streak(db, user_id)
+
+    maybe_reset_weekly(stats)
+
+    stats.all_time_minutes += minutes
+    stats.weekly_minutes += minutes
+    stats.completed_sessions += 1
+
+    today = datetime.utcnow().date()
+    if streak.last_session_date is None:
+        streak.current_streak = 1
+    else:
+        delta = (today - streak.last_session_date.date()).days
+        if delta == 1:
+            streak.current_streak += 1
+        elif delta > 1:
+            streak.current_streak = 1
+
+    streak.last_session_date = datetime.utcnow()
+
+    db.commit()
+    db.refresh(stats)
+    db.refresh(streak)
+    return stats, streak
+
+# =========================
 # SCHEDULES
+# =========================
 def create_schedule(db: Session, user_id: int, sched: schemas.ScheduleCreate):
     s = models.Schedule(
         user_id=user_id,
@@ -42,8 +100,11 @@ def list_schedules(db: Session, user_id: int):
     out = []
     for r in rows:
         out.append({
-            "id": r.id, "label": r.label, "duration_minutes": r.duration_minutes,
-            "apps": r.apps_csv.split(",") if r.apps_csv else [], "is_active": r.is_active,
+            "id": r.id,
+            "label": r.label,
+            "duration_minutes": r.duration_minutes,
+            "apps": r.apps_csv.split(",") if r.apps_csv else [],
+            "is_active": r.is_active,
             "created_at": r.created_at
         })
     return out
@@ -55,7 +116,9 @@ def delete_schedule(db: Session, user_id: int, schedule_id: int):
         db.delete(s); db.commit(); return True
     return False
 
+# =========================
 # SESSIONS
+# =========================
 def start_session(db: Session, user_id: int, schedule_id: int, duration_minutes: int):
     now = datetime.utcnow()
     end = now + timedelta(minutes=duration_minutes)
@@ -78,10 +141,9 @@ def pause_session(db: Session, session_id: int):
     if s.paused or s.status != "running":
         return s
     now = datetime.utcnow()
-    remaining = int((s.end_time - now).total_seconds())
     s.paused = True
     s.paused_at = now
-    s.remaining_seconds = remaining
+    s.remaining_seconds = int((s.end_time - now).total_seconds())
     s.status = "paused"
     db.commit(); db.refresh(s)
     return s
@@ -93,50 +155,38 @@ def resume_session(db: Session, session_id: int):
     if not s.paused:
         return s
     now = datetime.utcnow()
-    new_end = now + timedelta(seconds=s.remaining_seconds or 0)
+    s.end_time = now + timedelta(seconds=s.remaining_seconds or 0)
     s.paused = False
     s.paused_at = None
-    s.end_time = new_end
     s.remaining_seconds = None
     s.status = "running"
     db.commit(); db.refresh(s)
     return s
 
-def stop_session(db: Session, session_id: int):
-    s = db.query(models.FocusSession).filter(models.FocusSession.id == session_id).first()
-    if not s:
-        return None
-    s.status = "stopped"
-    s.paused = False
-    s.remaining_seconds = None
-    db.commit(); db.refresh(s)
-    return s
-
 def list_active_sessions(db: Session, user_id: int):
     now = datetime.utcnow()
-    rows = db.query(models.FocusSession).filter(
+    return db.query(models.FocusSession).filter(
         models.FocusSession.user_id == user_id,
         models.FocusSession.status == "running",
         models.FocusSession.end_time > now
     ).all()
-    return rows
 
-# BLOCKS
-def create_blocked_apps_for_session(db: Session, user_id: int, package_names: List[str], duration_minutes: int, app_names = None):
-    """
-    Creates BlockedApp rows for given packages for given duration (from now).
-    """
+# =========================
+# BLOCKED APPS
+# =========================
+def create_blocked_apps_for_session(db: Session, user_id: int, package_names: List[str], duration_minutes: int, app_names=None):
     now = datetime.utcnow()
     end = now + timedelta(minutes=duration_minutes)
     created = []
     for i, pkg in enumerate(package_names):
-        app_name = None
-        if app_names and len(app_names) > i:
-            app_name = app_names[i]
-        # upsert active block for same package: create new row
+        app_name = app_names[i] if app_names and len(app_names) > i else None
         b = models.BlockedApp(
-            user_id=user_id, package_name=pkg, app_name=app_name,
-            start_time=now, end_time=end, is_active=True
+            user_id=user_id,
+            package_name=pkg,
+            app_name=app_name,
+            start_time=now,
+            end_time=end,
+            is_active=True
         )
         db.add(b)
         created.append(b)
@@ -146,16 +196,18 @@ def create_blocked_apps_for_session(db: Session, user_id: int, package_names: Li
 
 def list_active_blocked_apps(db: Session, user_id: int):
     now = datetime.utcnow()
-    rows = db.query(models.BlockedApp).filter(
+    return db.query(models.BlockedApp).filter(
         models.BlockedApp.user_id == user_id,
         models.BlockedApp.is_active == True,
         models.BlockedApp.end_time > now
     ).all()
-    return rows
 
 def deactivate_expired_blocks(db: Session):
     now = datetime.utcnow()
-    expired = db.query(models.BlockedApp).filter(models.BlockedApp.is_active == True, models.BlockedApp.end_time <= now).all()
+    expired = db.query(models.BlockedApp).filter(
+        models.BlockedApp.is_active == True,
+        models.BlockedApp.end_time <= now
+    ).all()
     for e in expired:
         e.is_active = False
     db.commit()

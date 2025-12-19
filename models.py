@@ -54,3 +54,19 @@ class BlockedApp(Base):
     is_active = Column(Boolean, default=True)
 
     owner = relationship("User", back_populates="block_rules")
+
+class FocusStats(Base):
+    __tablename__ = "focus_stats"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    all_time_minutes = Column(Integer, default=0)
+    weekly_minutes = Column(Integer, default=0)
+    completed_sessions = Column(Integer, default=0)
+    last_week_reset = Column(DateTime, default=datetime.utcnow)
+
+class UserStreak(Base):
+    __tablename__ = "user_streak"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    current_streak = Column(Integer, default=0)
+    last_session_date = Column(DateTime, nullable=True)

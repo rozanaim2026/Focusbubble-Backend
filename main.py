@@ -217,3 +217,15 @@ def get_active_blocks(user_id:int, db: Session = Depends(get_db)):
 def refresh_blocks(db: Session = Depends(get_db)):
     expired = crud.deactivate_expired_blocks(db)
     return {"expired": len(expired)}
+
+@app.get("/users/{user_id}/stats")
+def get_user_stats(user_id: int, db: Session = Depends(get_db)):
+    stats = crud.get_or_create_stats(db, user_id)
+    streak = crud.get_or_create_streak(db, user_id)
+
+    return {
+        "all_time_hours": round(stats.all_time_minutes / 60, 2),
+        "weekly_hours": round(stats.weekly_minutes / 60, 2),
+        "completed_sessions": stats.completed_sessions,
+        "current_streak": streak.current_streak
+    }
