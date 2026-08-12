@@ -212,3 +212,39 @@ def deactivate_expired_blocks(db: Session):
         e.is_active = False
     db.commit()
     return expired
+
+def stop_session(db: Session, session_id: int):
+    s = db.query(models.FocusSession).filter(models.FocusSession.id == session_id).first()
+    if not s:
+        return None
+    if s.status in ("stopped", "finished"):
+        return s  # already stopped — idempotent, avoids double-counting stats
+    now = datetime.utcnow()
+    s.end_time = now          # lock in actual elapsed time, not the originally scheduled end
+    s.paused = False
+    s.paused_at = None
+    s.remaining_seconds = None
+    s.status = "stopped"
+    db.commit()
+    db.refresh(s)
+    # Now that end_time reflects real elapsed time, record it in stats/streak
+    update_after_session_completion(db, s.user_id, s)
+    return s
+
+def stop_session(db: Session, session_id: int):
+    s = db.query(models.FocusSession).filter(models.FocusSession.id == session_id).first()
+    if not s:
+        return None
+    if s.status in ("stopped", "finished"):
+        return s  # already stopped — idempotent, avoids double-counting stats
+    now = datetime.utcnow()
+    s.end_time = now          # lock in actual elapsed time, not the originally scheduled end
+    s.paused = False
+    s.paused_at = None
+    s.remaining_seconds = None
+    s.status = "stopped"
+    db.commit()
+    db.refresh(s)
+    # Now that end_time reflects real elapsed time, record it in stats/streak
+    update_after_session_completion(db, s.user_id, s)
+    return s
