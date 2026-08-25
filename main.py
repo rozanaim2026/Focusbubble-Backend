@@ -92,6 +92,7 @@ def google_sign_in(token_in: schemas.TokenIn, db: Session = Depends(get_db)):
 def create_user(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     user = crud.get_or_create_user(db, email=user_in.email, name=user_in.name, picture=user_in.picture)
     return user
+    
 
 @app.get("/users/{user_id}", response_model=schemas.UserOut)
 def get_user(user_id: int, db: Session = Depends(get_db)):
@@ -99,6 +100,22 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
     if not u:
         raise HTTPException(status_code=404, detail="User not found")
     return u
+
+@app.get("/users/{user_id}/sessions", response_model=List[schemas.SessionOut])
+def list_all_sessions_for_user(user_id: int, db: Session = Depends(get_db)):
+    """Full session history for one user — completed, stopped, everything.
+    Different from /sessions/active, which only shows currently running ones."""
+    user = crud.get_user(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return crud.list_sessions_for_user(db, user_id)
+
+
+@app.get("/sessions", response_model=List[schemas.SessionWithUserOut])
+def list_all_sessions_admin(db: Session = Depends(get_db)):
+    """Every session, every user, newest first — the actual 'admin view' of
+    who's using the app and how their focus sessions are going."""
+    return crud.list_all_sessions(db)
 
 @app.get("/users", response_model=List[schemas.UserOut])
 def list_users(db: Session = Depends(get_db)):
