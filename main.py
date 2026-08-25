@@ -121,6 +121,13 @@ def list_all_sessions_admin(db: Session = Depends(get_db)):
 def list_users(db: Session = Depends(get_db)):
     return crud.list_users(db)
 
+@app.delete("/users/{user_id}")
+def delete_user_endpoint(user_id: int, db: Session = Depends(get_db)):
+    deleted = crud.delete_user(db, user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"ok": True, "deleted_user_id": user_id}
+
 
 # SCHEDULES
 @app.post("/users/{user_id}/schedules", response_model=schemas.ScheduleOut)
