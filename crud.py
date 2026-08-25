@@ -174,6 +174,18 @@ def list_active_sessions(db: Session, user_id: int):
         models.FocusSession.end_time > now
     ).all()
 
+def list_sessions_for_user(db: Session, user_id: int):
+    return db.query(models.FocusSession)\
+        .filter(models.FocusSession.user_id == user_id)\
+        .order_by(models.FocusSession.start_time.desc())\
+        .all()
+
+def list_all_sessions(db: Session):
+    """Every session across every user, newest first — this is what actually
+    lets you browse 'who completed what, when' like an admin/analytics view."""
+    return db.query(models.FocusSession)\
+        .order_by(models.FocusSession.start_time.desc())\
+        .all()
 # =========================
 # BLOCKED APPS
 # =========================
