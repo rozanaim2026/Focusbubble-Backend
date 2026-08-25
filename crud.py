@@ -28,6 +28,19 @@ def get_user(db: Session, user_id: int):
 def list_users(db: Session):
     return db.query(models.User).all()
 
+def delete_user(db: Session, user_id: int):
+    # FocusStats/UserStreak aren't wired into User's cascade relationships in
+    # models.py, so they won't be removed automatically by deleting the user
+    # row alone — delete them explicitly to avoid orphaned rows.
+    db.query(models.FocusStats).filter(models.FocusStats.user_id == user_id).delete()
+    db.query(models.UserStreak).filter(models.UserStreak.user_id == user_id).delete()
+    user = get_user(db, user_id)
+    if user:
+        db.delete(user)  # schedules/sessions/block_rules cascade via the User model's own relationships
+        db.commit()
+        return True
+    return False
+
 # =========================
 # STATS + STREAK
 # =========================
