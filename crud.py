@@ -25,6 +25,9 @@ def get_or_create_user(db: Session, email: str, name: str = None, picture: str =
 def get_user(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()
 
+def list_users(db: Session):
+    return db.query(models.User).all()
+
 # =========================
 # STATS + STREAK
 # =========================
