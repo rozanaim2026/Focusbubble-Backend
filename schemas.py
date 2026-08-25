@@ -68,3 +68,16 @@ class SessionOut(BaseModel):
 # Simple token input for google ID token
 class TokenIn(BaseModel):
     id_token: str
+
+class SessionWithUserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int
+    schedule_id: Optional[int]
+    start_time: datetime
+    end_time: datetime
+    paused: bool
+    remaining_seconds: Optional[int]
+    status: str
+    owner: UserOut
