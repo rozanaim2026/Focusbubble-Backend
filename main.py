@@ -100,6 +100,10 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return u
 
+@app.get("/users", response_model=List[schemas.UserOut])
+def list_users(db: Session = Depends(get_db)):
+    return crud.list_users(db)
+
 
 # SCHEDULES
 @app.post("/users/{user_id}/schedules", response_model=schemas.ScheduleOut)
