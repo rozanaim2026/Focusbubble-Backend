@@ -207,6 +207,7 @@ def list_active_sessions_for_user(user_id:int, db: Session = Depends(get_db)):
 def create_blocks(user_id:int, body: List[schemas.BlockedAppCreate], db: Session = Depends(get_db)):
     user = crud.get_user(db, user_id)
     if not user: raise HTTPException(status_code=404, detail="User not found")
+    crud.deactivate_all_blocks_for_user(db, user_id)  # replace, don't accumulate
     created = []
     for b in body:
         start = b.start_time or datetime.utcnow()
