@@ -41,6 +41,17 @@ def delete_user(db: Session, user_id: int):
         return True
     return False
 
+def deactivate_all_blocks_for_user(db: Session, user_id: int):
+    now = datetime.utcnow()
+    active = db.query(models.BlockedApp).filter(
+        models.BlockedApp.user_id == user_id,
+        models.BlockedApp.is_active == True
+    ).all()
+    for b in active:
+        b.is_active = False
+        b.end_time = now
+    db.commit()
+
 # =========================
 # STATS + STREAK
 # =========================
