@@ -81,3 +81,10 @@ class SessionWithUserOut(BaseModel):
     remaining_seconds: Optional[int]
     status: str
     owner: UserOut
+
+
+class AppOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    package_name: str
+    app_name: Optional[str]
