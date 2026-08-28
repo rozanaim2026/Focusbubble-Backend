@@ -47,13 +47,18 @@ class BlockedApp(Base):
     __tablename__ = "blocked_apps"
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    package_name = Column(String, nullable=False, index=True)
-    app_name = Column(String, nullable=True)
+    app_id = Column(Integer, ForeignKey("apps.id"), nullable=False, index=True)
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=False)
     is_active = Column(Boolean, default=True)
-
     owner = relationship("User", back_populates="block_rules")
+    app = relationship("App")
+
+class App(Base):
+    __tablename__ = "apps"
+    id = Column(Integer, primary_key=True, index=True)
+    package_name = Column(String, unique=True, index=True, nullable=False)
+    app_name = Column(String, nullable=True)
 
 class FocusStats(Base):
     __tablename__ = "focus_stats"
