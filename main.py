@@ -167,7 +167,7 @@ def start_session_for_user(user_id:int, body: schemas.SessionCreate, db: Session
         if sched and sched.apps_csv:
             pkgs = sched.apps_csv.split(",")
             crud.create_blocked_apps_for_session(db, user_id, pkgs, body.duration_minutes)
-                crud.snapshot_session_apps(db, session.id, user_id)
+            crud.snapshot_session_apps(db, session.id, user_id)
 
     return session
 
