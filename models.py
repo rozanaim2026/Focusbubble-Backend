@@ -9,11 +9,11 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=True)
     picture = Column(String, nullable=True)
-
+    login_type = Column(String, nullable=True)       # "google" or "guest"
+    updated_at = Column(DateTime, nullable=True)
     schedules = relationship("Schedule", back_populates="owner", cascade="all,delete")
     sessions = relationship("FocusSession", back_populates="owner", cascade="all,delete")
     block_rules = relationship("BlockedApp", back_populates="owner", cascade="all,delete")
-
 
 class Schedule(Base):
     __tablename__ = "schedules"
