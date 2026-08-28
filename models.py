@@ -70,3 +70,11 @@ class UserStreak(Base):
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     current_streak = Column(Integer, default=0)
     last_session_date = Column(DateTime, nullable=True)
+
+
+class SessionApp(Base):
+    __tablename__ = "session_apps"
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("sessions.id"), nullable=False, index=True)
+    app_id = Column(Integer, ForeignKey("apps.id"), nullable=False, index=True)
+    app = relationship("App")
