@@ -219,6 +219,18 @@ def list_all_sessions(db: Session):
     return db.query(models.FocusSession)\
         .order_by(models.FocusSession.start_time.desc())\
         .all()
+
+def snapshot_session_apps(db: Session, session_id: int, user_id: int):
+    """Copies whichever apps are currently active for this user into
+    session_apps, tied to this specific session. This is what preserves
+    accurate history — if the user later changes their blocked-apps
+    selection, this session's record of what WAS blocked at the time stays
+    correct, instead of silently drifting to match today's selection."""
+    active_blocks = list_active_blocked_apps(db, user_id)
+    for b in active_blocks:
+        db.add(models.SessionApp(session_id=session_id, app_id=b.app_id))
+    db.commit()
+    
 # =========================
 # BLOCKED APPS
 # =========================
