@@ -8,6 +8,12 @@ from typing import List
 # USER
 # =========================
 def get_or_create_user(db: Session, email: str, name: str = None, picture: str = None):
+    # Inferred from the email pattern rather than requiring the app to send
+    # it explicitly — guest accounts are created with
+    # "guest_<uuid>@focusbubble.app" (see UserSession.getOrCreateGuestEmail
+    # on the Android side), so this needs zero changes there.
+    login_type = "guest" if email.endswith("@focusbubble.app") else "google"
+
     u = db.query(models.User).filter(models.User.email == email).first()
     if u:
         changed = False
@@ -15,10 +21,13 @@ def get_or_create_user(db: Session, email: str, name: str = None, picture: str =
             u.name = name; changed = True
         if picture and u.picture != picture:
             u.picture = picture; changed = True
+        if u.login_type != login_type:
+            u.login_type = login_type; changed = True
         if changed:
+            u.updated_at = datetime.utcnow()
             db.commit(); db.refresh(u)
         return u
-    u = models.User(email=email, name=name, picture=picture)
+    u = models.User(email=email, name=name, picture=picture, login_type=login_type, updated_at=datetime.utcnow())
     db.add(u); db.commit(); db.refresh(u)
     return u
 
