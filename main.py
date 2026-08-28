@@ -197,6 +197,11 @@ def stop_session(session_id:int, db: Session = Depends(get_db)):
     db.commit()
     return s
 
+@app.get("/sessions/{session_id}/apps", response_model=List[schemas.AppOut])
+def get_session_apps(session_id: int, db: Session = Depends(get_db)):
+    rows = db.query(models.SessionApp).filter(models.SessionApp.session_id == session_id).all()
+    return [row.app for row in rows]
+
 @app.get("/users/{user_id}/sessions/active")
 def list_active_sessions_for_user(user_id:int, db: Session = Depends(get_db)):
     rows = crud.list_active_sessions(db, user_id)
