@@ -291,23 +291,11 @@ def create_blocked_apps_for_session(
 def list_active_blocked_apps(db: Session, user_id: int):
     now = datetime.utcnow()
 
-    rows = db.query(models.BlockedApp).filter(
+    return db.query(models.BlockedApp).filter(
         models.BlockedApp.user_id == user_id,
         models.BlockedApp.is_active == True,
         models.BlockedApp.end_time > now
     ).all()
-
-    return [
-        {
-            "id": row.id,
-            "package_name": row.app.package_name,
-            "app_name": row.app.app_name,
-            "start_time": row.start_time,
-            "end_time": row.end_time,
-            "is_active": row.is_active
-        }
-        for row in rows
-    ]
 
 
 def deactivate_expired_blocks(db: Session):
