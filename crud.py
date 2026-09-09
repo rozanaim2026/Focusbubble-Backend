@@ -234,25 +234,59 @@ def snapshot_session_apps(db: Session, session_id: int, user_id: int):
 # =========================
 # BLOCKED APPS
 # =========================
-def create_blocked_apps_for_session(db: Session, user_id: int, package_names: List[str], duration_minutes: int, app_names=None):
+def create_blocked_apps_for_session(
+    db: Session,
+    user_id: int,
+    package_names: List[str],
+    duration_minutes: int,
+    app_names=None
+):
     now = datetime.utcnow()
     end = now + timedelta(minutes=duration_minutes)
     created = []
+
     for i, pkg in enumerate(package_names):
-        app_name = app_names[i] if app_names and len(app_names) > i else None
+        pkg = pkg.strip()
+
+        app_name = (
+            app_names[i]
+            if app_names and len(app_names) > i
+            else None
+        )
+
+        # Find existing app
+        app = db.query(models.App).filter(
+            models.App.package_name == pkg
+        ).first()
+
+        # Create app if it doesn't exist
+        if not app:
+            app = models.App(
+                package_name=pkg,
+                app_name=app_name
+            )
+            db.add(app)
+            db.flush()
+
+        # Create blocked-app relationship
         b = models.BlockedApp(
             user_id=user_id,
-            package_name=pkg,
-            app_name=app_name,
+            app_id=app.id,
             start_time=now,
             end_time=end,
             is_active=True
         )
+
         db.add(b)
         created.append(b)
+
     db.commit()
-    for c in created: db.refresh(c)
+
+    for c in created:
+        db.refresh(c)
+
     return created
+
 
 def list_active_blocked_apps(db: Session, user_id: int):
     now = datetime.utcnow()
@@ -262,49 +296,44 @@ def list_active_blocked_apps(db: Session, user_id: int):
         models.BlockedApp.end_time > now
     ).all()
 
+
 def deactivate_expired_blocks(db: Session):
     now = datetime.utcnow()
     expired = db.query(models.BlockedApp).filter(
         models.BlockedApp.is_active == True,
         models.BlockedApp.end_time <= now
     ).all()
+
     for e in expired:
         e.is_active = False
+
     db.commit()
     return expired
 
-def stop_session(db: Session, session_id: int):
-    s = db.query(models.FocusSession).filter(models.FocusSession.id == session_id).first()
-    if not s:
-        return None
-    if s.status in ("stopped", "finished"):
-        return s  # already stopped — idempotent, avoids double-counting stats
-    now = datetime.utcnow()
-    s.end_time = now          # lock in actual elapsed time, not the originally scheduled end
-    s.paused = False
-    s.paused_at = None
-    s.remaining_seconds = None
-    s.status = "stopped"
-    db.commit()
-    db.refresh(s)
-    # Now that end_time reflects real elapsed time, record it in stats/streak
-    update_after_session_completion(db, s.user_id, s)
-    return s
 
 def stop_session(db: Session, session_id: int):
-    s = db.query(models.FocusSession).filter(models.FocusSession.id == session_id).first()
+    s = db.query(models.FocusSession).filter(
+        models.FocusSession.id == session_id
+    ).first()
+
     if not s:
         return None
+
     if s.status in ("stopped", "finished"):
-        return s  # already stopped — idempotent, avoids double-counting stats
+        return s
+
     now = datetime.utcnow()
-    s.end_time = now          # lock in actual elapsed time, not the originally scheduled end
+
+    s.end_time = now
     s.paused = False
     s.paused_at = None
     s.remaining_seconds = None
     s.status = "stopped"
+
     db.commit()
     db.refresh(s)
-    # Now that end_time reflects real elapsed time, record it in stats/streak
+
+    # Record completed session in stats/streak
     update_after_session_completion(db, s.user_id, s)
+
     return s
