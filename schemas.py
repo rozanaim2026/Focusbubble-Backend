@@ -39,15 +39,13 @@ class BlockedAppCreate(BaseModel):
     end_time: Optional[datetime] = None
 
 class BlockedAppOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    
     id: int
     package_name: str
     app_name: Optional[str]
     start_time: datetime
     end_time: datetime
     is_active: bool
-
+    
 class SessionCreate(BaseModel):
     user_id: int
     schedule_id: Optional[int] = None
