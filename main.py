@@ -209,39 +209,68 @@ def list_active_sessions_for_user(user_id:int, db: Session = Depends(get_db)):
 
 
 # BLOCKED APPS endpoints
-@app.post("/users/{user_id}/blocks", response_model=List[schemas.BlockedAppOut])
-def create_blocks(user_id:int, body: List[schemas.BlockedAppCreate], db: Session = Depends(get_db)):
+@app.post(
+    "/users/{user_id}/blocks",
+    response_model=List[schemas.BlockedAppOut]
+)
+def create_blocks(
+    user_id: int,
+    body: List[schemas.BlockedAppCreate],
+    db: Session = Depends(get_db)
+):
     user = crud.get_user(db, user_id)
-    if not user: raise HTTPException(status_code=404, detail="User not found")
-    crud.deactivate_all_blocks_for_user(db, user_id)  # replace, don't accumulate
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    # Remove existing active blocks
+    crud.deactivate_all_blocks_for_user(db, user_id)
+
     created = []
+
     for b in body:
         start = b.start_time or datetime.utcnow()
-        end = b.end_time
-        if not end:
+
+        if not b.end_time:
             from datetime import timedelta
             end = start + timedelta(minutes=25)
-        # create directly in DB
+        else:
+            end = b.end_time
+
+        # Find or create App
+        app_record = db.query(models.App).filter(
+            models.App.package_name == b.package_name
+        ).first()
+
+        if not app_record:
+            app_record = models.App(
+                package_name=b.package_name,
+                app_name=b.app_name
+            )
+            db.add(app_record)
+            db.flush()
+
+        # Create BlockedApp using app_id
         row = models.BlockedApp(
             user_id=user_id,
-            package_name=b.package_name,
-            app_name=b.app_name,
+            app_id=app_record.id,
             start_time=start,
             end_time=end,
             is_active=True
         )
-        db.add(row); created.append(row)
+
+        db.add(row)
+        created.append(row)
+
     db.commit()
-    for c in created: db.refresh(c)
-    result = [{
-        "id": c.id,
-        "package_name": c.package_name,
-        "app_name": c.app_name,
-        "start_time": c.start_time,
-        "end_time": c.end_time,
-        "is_active": c.is_active
-    } for c in created]
-    return result
+
+    for row in created:
+        db.refresh(row)
+
+    return created
 
 @app.get("/users/{user_id}/blocks", response_model=List[schemas.BlockedAppOut])
 def get_active_blocks(user_id:int, db: Session = Depends(get_db)):
