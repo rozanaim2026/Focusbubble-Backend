@@ -250,13 +250,13 @@ Contains Python dependencies required by the backend.
 Frontend repository:
 
 ```text
-Focusbubble-Frontend
+[https://github.com/rozanaim2026/Focusbubble-Frontend]
 ```
 
 Backend repository:
 
 ```text
-[https://github.com/rozanaim2026/Focusbubble-Backend](https://github.com/rozanaim2026/Focusbubble-Backend)
+[https://github.com/rozanaim2026/Focusbubble-Backend]
 ```
 
 Android integration files:
@@ -776,13 +776,13 @@ A screen recording of the FocusBubble application will be added here.
 
 ```text
 Demo video:
-[Add Google Drive link here]
+https://drive.google.com/file/d/1huUHpc7xJlbaWn8B0FC9OGSYItKeiGed/view?usp=sharing
 ```
 
 Example:
 
 ```markdown
-[▶️ Watch FocusBubble Demo](YOUR_GOOGLE_DRIVE_LINK_HERE)
+[▶️ Watch FocusBubble Demo]
 ```
 
 ---
