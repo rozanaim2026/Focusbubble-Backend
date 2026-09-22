@@ -770,21 +770,11 @@ Check:
 
 <a id="demo"></a>
 
-# 🎥 Demo
+## 🎥 Demo
 
-A screen recording of the FocusBubble application will be added here.
+Watch the FocusBubble application demonstration:
 
-```text
-Demo video:
-https://drive.google.com/file/d/1huUHpc7xJlbaWn8B0FC9OGSYItKeiGed/view?usp=sharing
-```
-
-Example:
-
-```markdown
-[▶️ Watch FocusBubble Demo]
-```
-
+[▶️ Watch the FocusBubble Demo](https://drive.google.com/file/d/1huUHpc7xJlbaWn8B0FC9OGSYItKeiGed/view?usp=sharing)
 ---
 
 <a id="author"></a>
