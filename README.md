@@ -274,7 +274,7 @@ data/repository/BlockedAppsRepository.kt
 ## Production Base URL
 
 ```text
-[https://your-render-service.onrender.com/](https://your-render-service.onrender.com/)
+[https://your-render-service.onrender.com/]
 ```
 
 The Android Retrofit base URL must end with `/`.
@@ -435,7 +435,7 @@ The backend is used for:
 ## Clone the Repository
 
 ```bash
-git clone [https://github.com/rozanaim2026/Focusbubble-Backend.git](https://github.com/rozanaim2026/Focusbubble-Backend.git)
+git clone [https://github.com/rozanaim2026/Focusbubble-Backend.git]
 cd Focusbubble-Backend
 ```
 
