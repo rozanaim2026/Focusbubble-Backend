@@ -791,7 +791,7 @@ GitHub: [https://github.com/rozanaim2026](https://github.com/rozanaim2026)
 
 Frontend Repository:
 
-[FocusBubble Frontend](YOUR_FRONTEND_REPOSITORY_LINK_HERE)
+[FocusBubble Frontend](https://github.com/rozanaim2026/Focusbubble-Frontend.git)
 
 Backend Repository:
 
